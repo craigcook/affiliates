@@ -170,6 +170,7 @@ MINIFY_BUNDLES = {
         # Facebook app
         'fb_common': (
             'js/libs/jquery-1.7.1.js',
+            'js/facebook/init.js',
         ),
         'fb_oauth_redirect': (
             'js/facebook/oauth_redirect.js',
