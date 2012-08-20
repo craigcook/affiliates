@@ -1,9 +1,13 @@
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 
+import jingo
 from caching.base import CachingManager
+from tower import ugettext as _
 
 from shared.tokens import TokenGenerator
+from shared.utils import get_object_or_none
 
 
 class FacebookUserManager(CachingManager):
@@ -36,9 +40,8 @@ class FacebookAccountLinkManager(CachingManager):
         has to be confirmed via a link in the verification email before it is
         finalized.
         """
-        try:
-            affiliates_user = User.objects.get(email=affiliates_email)
-        except User.DoesNotExist:
+        affiliates_user = get_object_or_none(User, email=affiliates_email)
+        if affiliates_user is None:
             return False
 
         # Exit early if the affiliates user already has an active account link.
@@ -58,5 +61,31 @@ class FacebookAccountLinkManager(CachingManager):
         # Even if the link is old, generate a fresh activation code.
         token_generator = self.get_token_generator(link)
         link.activation_code = token_generator.generate_token()
+        link.save()
+        return link
+
+    def send_activation_email(self, request, link):
+        """
+        Send an email to an Affiliates user to confirm that they consent to
+        linking their account with a Facebook account.
+        """
+        subject = _('Link your Firefox Affiliates account')
+        message = jingo.render_to_string(request,
+                                         'facebook/link_activation_email.html',
+                                         {'link': link})
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [link.affiliates_user.email])
+
+    def activate_link(self, activation_code):
+        """Verify activation code and activate the corresponding link."""
+        link = get_object_or_none(self.model, activation_code=activation_code)
+        if link is None or link.is_active:
+            return None
+
+        token_generator = self.get_token_generator(link)
+        if not token_generator.verify_token(activation_code):
+            return None
+
+        link.is_active = True
         link.save()
         return link

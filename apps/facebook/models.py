@@ -7,10 +7,13 @@ from django.db import models
 from django.template.defaultfilters import slugify
 
 from caching.base import CachingMixin
+from funfactory.urlresolvers import reverse
 
 from facebook.managers import FacebookAccountLinkManager, FacebookUserManager
+from facebook.utils import current_hour
 from shared.models import LocaleField, ModelBase
 from shared.storage import OverwritingStorage
+from shared.utils import absolutify
 
 
 class FacebookUser(CachingMixin, ModelBase):
@@ -85,6 +88,11 @@ class FacebookAccountLink(CachingMixin, ModelBase):
 
     objects = FacebookAccountLinkManager()
 
+    @property
+    def activation_link(self):
+        return absolutify(reverse('facebook.links.activate',
+                                  args=[self.activation_code]))
+
     def generate_token_state(self):
         """
         Generate a string for use in generating an activation token. This string
@@ -117,10 +125,20 @@ class FacebookBannerLocale(ModelBase):
 class FacebookBannerInstance(ModelBase):
     """Specific instance of a customized banner."""
     user = models.ForeignKey(FacebookUser, related_name='banner_instance_set')
-    banner = models.ForeignKey(FacebookBanner)
+    banner = models.ForeignKey(FacebookBanner, default=None)
     text = models.CharField(max_length=256)
     can_be_an_ad = models.BooleanField(default=False)
 
     created = models.DateTimeField(default=datetime.now)
     total_clicks = models.IntegerField(default=0)
     leaderboard_position = models.IntegerField(default=-1)
+
+    @property
+    def link(self):
+        return absolutify(reverse('facebook.banners.link', args=[self.id]))
+
+
+class FacebookClickStats(ModelBase):
+    banner_instance = models.ForeignKey(FacebookBannerInstance)
+    hour = models.DateTimeField(default=current_hour)
+    clicks = models.IntegerField(default=0)

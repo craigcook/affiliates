@@ -1,5 +1,6 @@
+from django import http
 from django.conf import settings
-from django.shortcuts import redirect as django_redirect
+from django.shortcuts import get_object_or_404, redirect as django_redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -9,9 +10,10 @@ from funfactory.urlresolvers import reverse
 
 from facebook.auth import login
 from facebook.decorators import fb_login_required
-from facebook.forms import FacebookBannerInstanceForm
-from facebook.models import FacebookUser
-from facebook.utils import decode_signed_request
+from facebook.forms import FacebookAccountLinkForm, FacebookBannerInstanceForm
+from facebook.tasks import add_click
+from facebook.models import FacebookAccountLink, FacebookUser
+from facebook.utils import decode_signed_request, is_logged_in
 from shared.utils import absolutify, redirect
 
 
@@ -84,3 +86,51 @@ def post_banner_share(request):
     Redirect user back to the app after they've posted a banner to their feed.
     """
     return django_redirect(settings.FACEBOOK_APP_URL)
+
+
+@require_POST
+def link_accounts(request):
+    """
+    Link the current user's account with an Affiliates account. Called via AJAX
+    by the frontend.
+    """
+    if not is_logged_in(request):
+        # Only logged in users can link accounts.
+        return http.HttpResponseForbidden()
+
+    form = FacebookAccountLinkForm(request.POST or None)
+    if form.is_valid():
+        affiliates_email = form.cleaned_data['affiliates_email']
+        link = FacebookAccountLink.objects.create_link(request.user,
+                                                       affiliates_email)
+        if link:
+            FacebookAccountLink.objects.send_activation_email(request, link)
+
+    # Tell the user we were successful regardless of outcome in order to avoid
+    # revealing valid emails.
+    return http.HttpResponse()
+
+
+def activate_link(request, activation_code):
+    link = FacebookAccountLink.objects.activate_link(activation_code)
+    if link:
+        return django_redirect(settings.FACEBOOK_APP_URL)
+    else:
+        raise http.Http404
+
+
+@fb_login_required
+@require_POST
+def remove_link(request):
+    link = get_object_or_404(FacebookAccountLink, facebook_user=request.user)
+    link.delete()
+    return banner_list(request)
+
+
+def follow_banner_link(request, banner_instance_id):
+    """
+    Add a click to a banner instance and redirect the user to the Firefox
+    download page.
+    """
+    add_click.delay(banner_instance_id)
+    return django_redirect(settings.FACEBOOK_DOWNLOAD_URL)
