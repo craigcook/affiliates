@@ -11,6 +11,9 @@ $(document).ready(function(){
   else {
     $("#userpic").hide();
   }
+  
+  // Hide newsletter options
+  $("#newsletter .options").hide();
 });
 
   // Swap the preview image as the selection changes
@@ -58,4 +61,9 @@ $(document).ready(function(){
     $("#link-account").slideToggle('fast');
     $(this).blur();
     return false;
+  });
+  
+  // Show newsletter options
+  $("#news-email").focus(function(){
+    $("#newsletter .options").slideDown('fast');
   });
