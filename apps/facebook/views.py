@@ -1,6 +1,7 @@
 from django import http
 from django.conf import settings
 from django.shortcuts import get_object_or_404, redirect as django_redirect
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -11,9 +12,11 @@ from funfactory.urlresolvers import reverse
 from facebook.auth import login
 from facebook.decorators import fb_login_required
 from facebook.forms import FacebookAccountLinkForm, FacebookBannerInstanceForm
-from facebook.tasks import add_click
-from facebook.models import FacebookAccountLink, FacebookUser
+from facebook.tasks import add_click, generate_banner_instance_image
+from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
+                             FacebookUser)
 from facebook.utils import decode_signed_request, is_logged_in
+from shared.http import JSONResponse
 from shared.utils import absolutify, redirect
 
 
@@ -58,27 +61,70 @@ def load_app(request):
 
 @fb_login_required
 @xframe_allow
-def create_banner(request):
+def banner_create(request):
     form = FacebookBannerInstanceForm(request, request.POST or None)
+
+    # TODO: Properly handle form errors with the new AJAX flow.
     if request.method == 'POST' and form.is_valid():
         banner_instance = form.save(commit=False)
         banner_instance.user = request.user
         banner_instance.save()
-        return banner_list(request)
 
-    return jingo.render(request, 'facebook/create_banner.html', {'form': form})
+        # The create form is submitted via an AJAX call. If the user wants to
+        # include their profile picture on a banner, we return a 202 Accepted to
+        # indicate we are processing the image. If they don't, we just return
+        # a 201 Created to signify that the banner instance has been created
+        # and it is safe to continue.
+        if request.POST['next_action'] == 'share':
+            next = absolutify(reverse('facebook.banners.share',
+                                      args=[banner_instance.id]))
+        else:
+            next = absolutify(reverse('facebook.banner_list'))
+
+        if form.cleaned_data['use_profile_image']:
+            generate_banner_instance_image.delay(banner_instance.id)
+
+            payload = {
+                'check_url': reverse('facebook.banners.create_image_check',
+                                     args=[banner_instance.id]),
+                'next': next
+            }
+            return JSONResponse(payload, status=202)  # 202 Accepted
+        else:
+            # No processing needed.
+            banner_instance.processed = True
+            banner_instance.save()
+            return JSONResponse({'next': next}, status=201)  # 201 Created
+
+    return jingo.render(request, 'facebook/banner_create.html', {'form': form})
+
+
+@fb_login_required
+@never_cache
+def banner_create_image_check(request, instance_id):
+    """Check the status of generating a custom image for a banner instance."""
+    banner_instance = get_object_or_404(FacebookBannerInstance, id=instance_id)
+    return JSONResponse({'is_processed': banner_instance.processed})
 
 
 @fb_login_required
 @xframe_allow
 def banner_list(request):
-    banner_instances = request.user.banner_instance_set.all()
+    banner_instances = request.user.banner_instance_set.filter(processed=True)
+    return jingo.render(request, 'facebook/banner_list.html',
+                        {'banner_instances': banner_instances})
+
+
+@fb_login_required
+@xframe_allow
+def banner_share(request, instance_id):
+    banner_instance = get_object_or_404(FacebookBannerInstance, id=instance_id,
+                                        user=request.user)
     protocol = 'https' if request.is_secure() else 'http'
-    share_banner_redirect = absolutify(reverse('facebook.post_banner_share'),
-                                       protocol=protocol)
-    ctx = {'banner_instances': banner_instances,
-           'share_banner_redirect': share_banner_redirect}
-    return jingo.render(request, 'facebook/banner_list.html', ctx)
+    next = absolutify(reverse('facebook.post_banner_share'),
+                              protocol=protocol)
+    return jingo.render(request, 'facebook/banner_share.html',
+                        {'banner_instance': banner_instance, 'next': next})
 
 
 def post_banner_share(request):

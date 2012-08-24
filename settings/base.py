@@ -118,7 +118,9 @@ CSP_IMG_SRC = (
     '\'self\'',
     'https://affiliates-cdn.mozilla.org',
     'https://statse.webtrendslive.com',
-    'https://secure.gravatar.com'
+    'https://secure.gravatar.com',
+    'https://graph.facebook.com',
+    'https://*.fbcdn.net',
 )
 CSP_FONT_SRC = (
     '\'self\'',
@@ -180,11 +182,12 @@ MINIFY_BUNDLES = {
         'fb_oauth_redirect': (
             'js/facebook/oauth_redirect.js',
         ),
-        'fb_banner_list': (
-            'js/facebook/post_to_wall.js',
+        'fb_banner_share': (
+            'js/libs/jquery-1.7.1.js',
+            'js/facebook/banner_share.js',
         ),
-        'fb_create_banner': (
-            'js/facebook/create_banner.js',
+        'fb_banner_create': (
+            'js/facebook/banner_create.js',
         ),
     }
 }
@@ -306,7 +309,13 @@ BANNERS_HASH = []
 # Settings for Affiliates Facebook app
 FACEBOOK_PERMISSIONS = ''
 FACEBOOK_BANNER_IMAGE_PATH = 'uploads/facebook/banners/'
+FACEBOOK_BANNER_INSTANCE_IMAGE_PATH = 'uploads/facebook/banner_instances/'
 FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
+FACEBOOK_CUSTOM_IMG_BORDER = {'width': 3, 'color': '#CCC'}
+
+# Coordinates for the Facebook profile image when pasted onto a banner image.
+# Format is (left, upper)
+FACEBOOK_CUSTOM_IMG_COORDS = (235, 151)
 
 # Period of time that an account link activation link is valid, in seconds.
 FACEBOOK_LINK_DELAY = 60 * 60 * 24 * 2  # 2 Days

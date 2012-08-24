@@ -406,10 +406,10 @@ a:active {
 }
 
 #userpic {
+  border: 3px solid #ccc;
   position: absolute;
   right: 15px;
   bottom: 15px;
-  box-shadow: 1px 1px 1px rgba(0,0,0,.15);
 }
 
 /* @Options */
@@ -495,6 +495,10 @@ a:active {
   margin-right: -12px;
   padding-right: 30px;
   background: url(../img/facebook/arrow-go-r.png) right center no-repeat;
+}
+
+.fm-submit .loading {
+  display: none;
 }
 
 /* @User tools */

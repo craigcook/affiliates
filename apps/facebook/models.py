@@ -45,6 +45,10 @@ class FacebookUser(CachingMixin, ModelBase):
     def is_linked(self):
         return self.account_link and self.account_link.is_active
 
+    @property
+    def picture_url(self):
+        return 'https://graph.facebook.com/%s/picture?type=square' % self.id
+
     # The next few methods and properties are useful for pretending to be a real
     # Django user object.
 
@@ -124,19 +128,40 @@ class FacebookBannerLocale(ModelBase):
     locale = LocaleField()
 
 
+def fb_instance_image_rename(instance, filename):
+    """Determine the filename for a custom FacebookBannerInstance image."""
+    extension = os.path.splitext(filename)[1]
+    new_filename = '%s_%s%s' % (instance.user.id, instance.banner.id, extension)
+    return os.path.join(settings.FACEBOOK_BANNER_INSTANCE_IMAGE_PATH,
+                        new_filename)
+
+
 class FacebookBannerInstance(ModelBase):
     """Specific instance of a customized banner."""
     user = models.ForeignKey(FacebookUser, related_name='banner_instance_set')
     banner = models.ForeignKey(FacebookBanner, default=None)
     text = models.CharField(max_length=256)
     can_be_an_ad = models.BooleanField(default=False)
+    custom_image = models.ImageField(blank=True,
+                                     default='',
+                                     upload_to=fb_instance_image_rename,
+                                     storage=OverwritingStorage(),
+                                     max_length=settings.MAX_FILEPATH_LENGTH)
 
     created = models.DateTimeField(default=datetime.now)
     total_clicks = models.IntegerField(default=0)
+    processed = models.BooleanField(default=False)
 
     @property
     def link(self):
         return absolutify(reverse('facebook.banners.link', args=[self.id]))
+
+    @property
+    def image(self):
+        if self.custom_image:
+            return self.custom_image
+        else:
+            return self.banner.image
 
 
 class FacebookClickStats(ModelBase):
