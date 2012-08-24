@@ -63,7 +63,7 @@ body {
 }
 
 .container {
-  width: 700px;
+  width: 740px;
   margin: 0 auto 1em;
 }
 .container:after {
@@ -75,7 +75,7 @@ body {
 }
 
 .main {
-  width: 420px;
+  width: 440px;
   padding: 20px;
   float: left;
   background: #fefefe;
@@ -83,7 +83,7 @@ body {
 }
 
 .sub {
-  width: 220px;
+  width: 240px;
   float: right;
 }
 
@@ -94,6 +94,7 @@ body {
   box-shadow: 1px 2px 2px rgba(0,0,0,.1);
 }
 
+/* @Messages */
 .messages {
   background: #f6fbff;
   margin: -10px -10px 20px;
@@ -194,7 +195,7 @@ a:active {
 }
 
 .head .download {
-  width: 220px;
+  width: 240px;
   float: right;
 }
 
@@ -359,7 +360,7 @@ a:active {
 }
 
 .firstrun .page-title {
-  font-size: 48px;
+  font-size: 3em;
 }
 
 .firstrun .intro {
@@ -595,7 +596,6 @@ a:active {
 #link-account {
   display: none;
   font-size: .6875em;
-  width: 180px;
   margin: 0 -20px 20px;
   padding: 15px 20px;
   color: #fff;
@@ -757,4 +757,32 @@ button::-moz-focus-inner {
 #newsletter button:after {
   content: "\00A0\00BB"; /* nbsp raquo */
   font-size: 1.2em;
+}
+
+/* @404 page */
+.notfound .main {
+  width: 435px;
+  padding: 60px 45px 60px 260px;
+  margin-top: 40px;
+  font-size: .875em;
+  background: #fff url(../img/facebook/fx-logo-big.png) -85px 50% no-repeat;
+}
+
+.notfound .page-title {
+  font-size: 3.428em;
+  margin: 0 0 .15em -2px;
+}
+
+.notfound h3 {
+  margin: 0 0 1em;
+}
+
+.notfound ul {
+  font-size: .857em;
+  margin: 0 0 1.5em 40px;
+  list-style: disc;
+}
+
+.notfound li {
+  margin: 0 0 1em;
 }
