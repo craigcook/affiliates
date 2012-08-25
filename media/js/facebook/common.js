@@ -28,10 +28,54 @@
     $(document).ready(function() {
         // Hide newsletter options
         $("#newsletter .options").hide();
+        FAQ.init();
     });
 
     // Show newsletter options
     $("#news-email").focus(function(){
         $("#newsletter .options").slideDown('fast');
     });
+    
 })($);
+
+/**
+ * FAQ Page Class
+ */
+var FAQ = {
+    init: function(){
+        FAQ.addEventListeners();
+    },
+
+    addEventListeners: function(){
+        if ($(".js_accordion").length) {
+            $(".js_accordion").each(function(index, elem){
+                FAQ.initAccordion(elem);
+            });
+        }
+    },
+
+    initAccordion : function(elem){
+        var ulAccordion = $(elem),
+            lnkAction = $("h4 a", ulAccordion),
+            liElement, answerElement;
+
+        ulAccordion.children().removeClass().addClass('collapsed');
+        lnkAction.each(function(){
+            $(this).click(function(e){
+                e.preventDefault();
+                liElement = $(this).parents('li');
+                answerElement = $('.answer', liElement);
+                if (liElement.hasClass('collapsed')) {
+                    answerElement.slideDown('fast', function() {
+                        liElement.removeClass().addClass('expanded');
+                    });
+                } else {
+                    answerElement.slideUp('fast', function() {
+                        liElement.removeClass().addClass('collapsed');
+                    });
+                }
+            });
+        });
+    }
+
+};
