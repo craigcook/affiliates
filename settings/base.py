@@ -186,6 +186,10 @@ MINIFY_BUNDLES = {
             'js/libs/jquery-1.7.1.js',
             'js/facebook/banner_share.js',
         ),
+        'fb_invite': (
+            'js/libs/jquery-1.7.1.js',
+            'js/facebook/invite.js',
+        ),
         'fb_banner_create': (
             'js/facebook/banner_create.js',
         ),
@@ -308,10 +312,13 @@ BANNERS_HASH = []
 
 # Settings for Affiliates Facebook app
 FACEBOOK_PERMISSIONS = ''
+FACEBOOK_CLICK_GOAL = 50
+
 FACEBOOK_BANNER_IMAGE_PATH = 'uploads/facebook/banners/'
 FACEBOOK_BANNER_INSTANCE_IMAGE_PATH = 'uploads/facebook/banner_instances/'
 FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
 FACEBOOK_CUSTOM_IMG_BORDER = {'width': 3, 'color': '#CCC'}
+FACEBOOK_LOCALES = ('en-us', 'de', 'zh-tw', 'nl', 'pl', 'pt-br')
 
 # Coordinates for the Facebook profile image when pasted onto a banner image.
 # Format is (left, upper)
