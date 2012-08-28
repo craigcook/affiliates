@@ -1,5 +1,6 @@
 from django import http
 from django.conf import settings
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect as django_redirect
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -8,6 +9,7 @@ from django.views.decorators.http import require_POST
 import jingo
 from commonware.response.decorators import xframe_allow
 from funfactory.urlresolvers import reverse
+from tower import ugettext as _
 
 from facebook.auth import login
 from facebook.decorators import fb_login_required
@@ -15,7 +17,7 @@ from facebook.forms import FacebookAccountLinkForm, FacebookBannerInstanceForm
 from facebook.tasks import add_click, generate_banner_instance_image
 from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
                              FacebookUser)
-from facebook.utils import decode_signed_request, is_logged_in
+from facebook.utils import activate_locale, decode_signed_request, is_logged_in
 from shared.http import JSONResponse
 from shared.utils import absolutify, redirect
 
@@ -51,6 +53,11 @@ def load_app(request):
 
     # User has been authed, let's log them in.
     login(request, user)
+
+    # Normally the FacebookAuthenticationMiddleware activates the locale for
+    # the user, but since it does not run for this view, we need to activate it
+    # manually.
+    activate_locale(request, user.locale)
 
     if user.is_new:
         return jingo.render(request, 'facebook/first_run.html')
@@ -131,6 +138,8 @@ def post_banner_share(request):
     """
     Redirect user back to the app after they've posted a banner to their feed.
     """
+    messages.success(request, _('You have successfully posted a banner to your '
+                                'wall !'))
     return django_redirect(settings.FACEBOOK_APP_URL)
 
 
@@ -189,3 +198,21 @@ def leaderboard(request):
     top_users = FacebookUser.objects.order_by('leaderboard_position')[:25]
     return jingo.render(request, 'facebook/leaderboard.html',
                         {'top_users': top_users})
+
+
+@fb_login_required
+@xframe_allow
+def invite(request):
+    protocol = 'https' if request.is_secure() else 'http'
+    next = absolutify(reverse('facebook.post_invite'), protocol=protocol)
+    return jingo.render(request, 'facebook/invite.html', {'next': next})
+
+
+def post_invite(request):
+    """
+    Redirect user back to the app after they've invited friends to download
+    Firefox.
+    """
+    messages.success(request, _('You have successfully sent a message to one '
+                                'of your friends!'))
+    return django_redirect(settings.FACEBOOK_APP_URL)
