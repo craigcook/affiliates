@@ -154,7 +154,7 @@ h6,
   font-size: 1.25em;
   letter-spacing: normal;
   text-align: center;
-  margin: 10px 0 30px; 
+  margin: 10px 0 30px;
 }
 
 /* @Links ***/
@@ -423,11 +423,12 @@ a:active {
 #banner-preview .errors {
   background: #fdd9d9 url(../img/facebook/error.png) 25px 6px no-repeat;
   color: #c33;
+  display: none;
   font-size: .75em;
   font-weight: bold;
   text-transform: uppercase;
   margin: -30px -20px -10px;
-  padding: 10px 20px 10px 65px;
+  padding: 10px 20px 30px 65px;
 }
 
 #banner-preview figure {
@@ -748,7 +749,7 @@ button::-moz-focus-inner {
 .banner-list h2 {
   font-size: 1.25em;
   text-align: center;
-  margin: 0 0 30px; 
+  margin: 0 0 30px;
 }
 
 .current-banner {
@@ -891,8 +892,8 @@ button::-moz-focus-inner {
 }
 
 /* @Leaderboard */
-.select-country {
-  text-align: center;
+#id_country {
+  display: block;
   margin: 30px auto;
 }
 
@@ -902,7 +903,7 @@ table.board {
   border-collapse: collapse;
 }
 
-table.board th, 
+table.board th,
 table.board td {
   font-weight: normal;
   text-align: left;
@@ -922,7 +923,7 @@ table.board .leaders tr:last-child th {
   border-bottom: 0;
 }
 
-table.board .you th, 
+table.board .you th,
 table.board .you td {
   padding: 20px 12px;
   background: #f3f7f8;

@@ -1,17 +1,20 @@
 from django import forms
+from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import User
 from django.forms.util import flatatt
 from django.utils.safestring import mark_safe
+from django.utils.translation import get_language
 
-from tower import ugettext_lazy as _lazy
+from product_details import product_details
+from tower import ugettext as _, ugettext_lazy as _lazy
 
-from facebook.models import FacebookBanner, FacebookBannerInstance
+from facebook.models import FacebookBanner, FacebookBannerInstance, FacebookUser
 from shared.forms import AdminModelForm
 from shared.models import ENGLISH_LANGUAGE_CHOICES
 from shared.utils import absolutify
 
-
+# L10n: &hellip; is an ellipses, the three dots like "I love Firefox because..."
 _text_placeholder = _lazy('I love Firefox because&hellip;')
 
 
@@ -78,6 +81,18 @@ class BannerRadioSelect(forms.RadioSelect):
 
 class FacebookBannerInstanceForm(forms.ModelForm):
     use_profile_image = forms.BooleanField(required=False)
+    text = forms.CharField(max_length=90, widget=forms.Textarea(attrs={
+        # L10n: &hellip; is an ellipses, the three dots like
+        # L10n: "I love Firefox because..."
+        'placeholder': mark_safe(_text_placeholder),
+        'maxlength': 90,
+        'rows': 2,
+        'required': 'required'
+    }), error_messages={
+        'max_length': _lazy('Sorry. Your message is too long. Please tell the '
+                            'world why you love Firefox in 90 characters or '
+                            'less.')
+    })
 
     def __init__(self, request, *args, **kwargs):
         super(FacebookBannerInstanceForm, self).__init__(*args, **kwargs)
@@ -98,14 +113,7 @@ class FacebookBannerInstanceForm(forms.ModelForm):
         model = FacebookBannerInstance
         fields = ('banner', 'text', 'can_be_an_ad')
         widgets = {
-            'banner': BannerRadioSelect(),
-            'text': forms.Textarea(attrs={
-                # L10n: &hellip; is an ellipses, the three dots like
-                # L10n: "I love Firefox because..."
-                'placeholder': mark_safe(_text_placeholder),
-                'maxlength': 90,
-                'rows': 2
-            })
+            'banner': BannerRadioSelect(attrs={'required': 'required'}),
         }
 
 
@@ -128,7 +136,8 @@ class FacebookBannerAdminForm(AdminModelForm):
 
 
 class FacebookAccountLinkForm(forms.Form):
-    affiliates_email = forms.EmailField(widget=EmailInput())
+    affiliates_email = forms.EmailField(
+        widget=EmailInput(attrs={'required': 'required'}))
 
     def clean_affiliates_email(self):
         """
@@ -141,3 +150,33 @@ class FacebookAccountLinkForm(forms.Form):
             # English is okay here since this error is never shown to the user.
             raise forms.ValidationError('Affiliates account not found.')
         return email
+
+
+class LeaderboardFilterForm(forms.Form):
+    country = forms.ChoiceField(choices=settings.COUNTRIES.items())
+
+    def __init__(self, *args, **kwargs):
+        super(LeaderboardFilterForm, self).__init__(*args, **kwargs)
+
+        # Update choices to use the current locale.
+        lang = get_language()
+        choices = sorted(product_details.get_regions(lang).items(),
+                         key=lambda n: n[1])
+        # L10n: Used in a dropdown that lets users filter the Leaderboard by
+        # L10n: country. Refers to the default filter, which shows all countries
+        choices.insert(0, ('', _('All')))
+
+        self.fields['country'].choices = choices
+
+    # TODO: Change this into a queryset method.
+    def get_top_users(self, limit=25):
+        """
+        Return the top users ranked by banner clicks and filtered by country
+        based on the country field value on this form.
+        """
+        queryset = (FacebookUser.objects.exclude(leaderboard_position=-1)
+                    .order_by('leaderboard_position'))
+        if self.is_valid() and self.cleaned_data['country'] != '':
+            queryset = queryset.filter(country=self.cleaned_data['country'])
+
+        return queryset[:limit]

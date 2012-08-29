@@ -13,7 +13,8 @@ from tower import ugettext as _
 
 from facebook.auth import login
 from facebook.decorators import fb_login_required
-from facebook.forms import FacebookAccountLinkForm, FacebookBannerInstanceForm
+from facebook.forms import (FacebookAccountLinkForm, FacebookBannerInstanceForm,
+                            LeaderboardFilterForm)
 from facebook.tasks import add_click, generate_banner_instance_image
 from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
                              FacebookUser)
@@ -51,6 +52,10 @@ def load_app(request):
         }
         return jingo.render(request, 'facebook/oauth_redirect.html', context)
 
+    # Attach country data to the user object. This can only be retrieved from
+    # the decoded request, so we add it here and login saves it.
+    user.country = decoded_request['user']['country']
+
     # User has been authed, let's log them in.
     login(request, user)
 
@@ -70,9 +75,10 @@ def load_app(request):
 @xframe_allow
 def banner_create(request):
     form = FacebookBannerInstanceForm(request, request.POST or None)
+    if request.method == 'POST':
+        if not form.is_valid():
+            return JSONResponse(form.errors, status=400)
 
-    # TODO: Properly handle form errors with the new AJAX flow.
-    if request.method == 'POST' and form.is_valid():
         banner_instance = form.save(commit=False)
         banner_instance.user = request.user
         banner_instance.save()
@@ -195,9 +201,10 @@ def follow_banner_link(request, banner_instance_id):
 @fb_login_required
 @xframe_allow
 def leaderboard(request):
-    top_users = FacebookUser.objects.order_by('leaderboard_position')[:25]
+    form = LeaderboardFilterForm(request.GET or None)
+    top_users = form.get_top_users()
     return jingo.render(request, 'facebook/leaderboard.html',
-                        {'top_users': top_users})
+                        {'top_users': top_users, 'form': form})
 
 
 @fb_login_required

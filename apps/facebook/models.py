@@ -19,7 +19,7 @@ from shared.utils import absolutify
 class FacebookUser(CachingMixin, ModelBase):
     """Represent a user of the Facebook app."""
     id = models.CharField(max_length=128, primary_key=True)
-    leaderboard_position = models.IntegerField(default=2147483647)  # Max Int
+    leaderboard_position = models.IntegerField(default=-1)
     total_clicks = models.IntegerField(default=0)
 
     # Personal info from Facebook
@@ -27,6 +27,8 @@ class FacebookUser(CachingMixin, ModelBase):
     first_name = models.CharField(max_length=256, blank=True)
     last_name = models.CharField(max_length=256, blank=True)
     locale = models.CharField(max_length=32, blank=True)
+    country = models.CharField(max_length=16, blank=True,
+                               choices=settings.COUNTRIES.items())
 
     objects = FacebookUserManager()
 
@@ -146,7 +148,7 @@ class FacebookBannerInstance(ModelBase):
     """Specific instance of a customized banner."""
     user = models.ForeignKey(FacebookUser, related_name='banner_instance_set')
     banner = models.ForeignKey(FacebookBanner, default=None)
-    text = models.CharField(max_length=256)
+    text = models.CharField(max_length=90)
     can_be_an_ad = models.BooleanField(default=False)
     custom_image = models.ImageField(blank=True,
                                      default='',
