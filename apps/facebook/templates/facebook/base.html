@@ -1,12 +1,14 @@
+{% from 'shared/macros.html' import month_year_picker with context %}
+
 <!DOCTYPE html>
-<html>
+<html lang="{{ LANG }}" dir="{{ DIR }}">
   <head>
     <title>Affiliates Facebook</title>
     {% block site_css %}
       {{ css('fb_base') }}
     {% endblock %}
   </head>
-  <body>
+  <body class="{{ LOCALE }} {% block body_class %}{% endblock %}">
     <div class="container">
       <header class="head">
         <hgroup>
@@ -19,15 +21,33 @@
         </aside>
       </header>
 
+      {% block navigation_tabs %}
       <nav class="nav-tabs">
         <ul>
-          <li class="selected"><a href="{{ url('facebook.banner_list') }}">{{ _('My banners') }}</a></li>
-          {# L10n: Refers to Frequently Asked Questions, a page that shows answers to common questions about the app. #}
-          <li><a href="#">{{ _('FAQs') }}</a></li>
-          {# L10n: Refers to a page that shows the top 25 users with the most clicks on their banners. #}
-          <li><a href="{{ url('facebook.leaderboard') }}">{{ _('Leaderboard') }}</a></li>
+          <li {{ 'banners'|class_selected(nav_section) }}>
+            <a href="{{ url('facebook.banner_list') }}">
+              {{ _('My banners') }}
+            </a>
+          </li>
+
+          {# L10n: Refers to Frequently Asked Questions, a page that shows #}
+          {# L10n: answers to common questions about the app. #}
+          <li {{ 'faq'|class_selected(nav_section) }}>
+            <a href="{{ url('facebook.faq') }}">
+              {{ _('FAQs') }}
+            </a>
+          </li>
+
+          {# L10n: Refers to a page that shows the top 25 users with the most #}
+          {# L10n: clicks on their banners. #}
+          <li {{ 'leaderboard'|class_selected(nav_section) }}>
+            <a href="{{ url('facebook.leaderboard') }}">
+              {{ _('Leaderboard') }}
+            </a>
+          </li>
         </ul>
       </nav>
+      {% endblock %}
 
       <div class="main">
         {% if messages %}
@@ -42,6 +62,7 @@
       {% endblock %}
       </div><!-- /.main -->
 
+      {% block sidebar %}
       <aside class="sub">
 
         <div id="user-tools" class="module">
@@ -85,10 +106,12 @@
 
           <h3>{{ _('Your Statistics Summary') }}</h3>
           <div class="calendar">
-            [[calendar widget goes here]]
+            {# Because url can't take placeholders, we use 0 in the months spot and 1 in the year spot. #}
+            {{ month_year_picker(url('facebook.stats', 1, 0)) }}
           </div>
           <p class="note">{{ _('You can filter results by selecting a specific month using the calendar above.') }}</p>
-          <p class="total">{{ _('Total clicks') }} <strong>234</strong></p>
+          <p class="total">{{ _('Total clicks') }} <strong id="total-clicks">0</strong></p>
+          <p class="stats-warning"><span>{{ _('Statistics are currently unavailable.') }}</span></p>
         </div>
 
         <div id="help" class="module">
@@ -101,25 +124,26 @@
           </ol>
         </div>
 
+        {% if newsletter_form %}
         <div id="newsletter" class="module">
           <h2>{{ _('Get Firefox News') }}</h2>
-          <form method="post" action="/path/to/handler">
+          <form id="newsletter-form" method="post" action="{{ url('facebook.newsletter.subscribe') }}">
+            {{ csrf() }}
             <p>
-              <label for="news-email">{{ _('Your email address') }}</label>
-              <input type="email" id="news-email" name="email" placeholder="{{ _('Your email address') }}" required>
+              {{ newsletter_form.email.label_tag(_('Your email address')) }}
+              {{ newsletter_form.email }}
             </p>
             <div class="options">
               <p>
-                [[ country dropdown goes here ]]
+                {{ newsletter_form.country }}
               </p>
               <p>
-                <label for="news-format-html"><input type="radio" id="news-format-html" name="format" value="html" checked> HTML</label>
-                {# L10n: Used in a choice field where users can choose between receiving HTML-based or Text-only newsletter emails. #}
-                <label for="news-format-text"><input type="radio" id="news-format-text" name="format" value="text"> {{ _('Text') }}</label>
+                {{ newsletter_form.format }}
               </p>
               <p>
-                <label for="news-agree">
-                  <input type="checkbox" id="news-agree" name="news-agree" required>
+                {# Using our own manual label because you can't store the content of a trans block in a variable for the label_tag function. #}
+                <label for="id_privacy_policy_agree">
+                  {{ newsletter_form.privacy_policy_agree }}
                   {% trans link='privacy_policy' %}
                   I agree to the <a href="{{ link }}">Privacy Policy</a>
                   {% endtrans %}
@@ -132,9 +156,15 @@
               <button type="submit" class="button-blue">{{ _('Sign me up!') }}</button>
             </p>
           </form>
+          <div id="newsletter-success">
+            <span class="msg">{{ _('Thanks!') }}</span>
+          </div>
         </div>
+        {% endif %}
 
       </aside><!-- /.sub -->
+      {% endblock %}
+
     </div><!-- /.container -->
     {% block site_js %}
       {{ js('fb_common') }}

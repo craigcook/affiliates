@@ -94,6 +94,7 @@ body {
   box-shadow: 1px 2px 2px rgba(0,0,0,.1);
 }
 
+/* @Messages */
 .messages {
   background: #f6fbff;
   margin: -10px -10px 20px;
@@ -114,7 +115,6 @@ body {
 .messages .error {
   background: url(../img/facebook/status-bad.png) 0 1px no-repeat;
 }
-
 
 /* @Headings ***/
 h1, h2, h3, h4, h5, h6 {
@@ -239,6 +239,7 @@ a:active {
 .button-blue:hover,
 .button-blue:focus,
 .button-blue:active {
+  color: #fff;
   -webkit-box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1), inset 0 -2px 0 0 rgba(0, 0, 0, 0.2), inset 0 12px 24px 2px #3089d8;
   -moz-box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1), inset 0 -2px 0 0 rgba(0, 0, 0, 0.2), inset 0 12px 24px 2px #3089d8;
   box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1), inset 0 -2px 0 0 rgba(0, 0, 0, 0.2), inset 0 12px 24px 2px #3089d8;
@@ -349,6 +350,75 @@ a:active {
   border: 1px solid #666;
   background: #979c9d;
   box-shadow: inset 0 2px 2px rgba(0,0,0,.25);
+}
+
+/* @First run */
+.firstrun .main {
+  min-height: 150px;
+  width: 390px;
+  padding: 60px 45px 300px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #fff;
+  background: #fefefe url(../img/facebook/bg-firstrun.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));
+}
+
+.firstrun.de-de .main {
+  background: #fefefe url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-de.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));  
+}
+
+.firstrun.es-es .main,
+.firstrun.es-la .main {
+  background: #fefefe url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-es.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));  
+}
+
+.firstrun.fr-fr .main {
+  background: #fefefe url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-fr.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));  
+}
+
+.firstrun.pl-pl .main {
+  background: #fefefe url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pl.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));  
+}
+
+.firstrun.pt-br .main {
+  background: #fefefe url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat;
+  background: url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat, #fefefe -moz-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat, #fefefe -webkit-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat, #fefefe -o-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat, #fefefe -ms-linear-gradient(bottom, #e9eef4 400px, rgba(233,238,244,0));
+  background: url(../img/facebook/bg-firstrun-pt-br.png) center bottom no-repeat, #fefefe linear-gradient(to top, #e9eef4 400px, rgba(233,238,244,0));  
+}
+
+.firstrun .page-title {
+  font-size: 3em;
+}
+
+.firstrun .intro {
+  font: .875em/1.6 "Open Sans Light", "Lucida Sans", "Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif;
 }
 
 /*@Select */
@@ -541,7 +611,8 @@ a:active {
   margin-left: 10px;
 }
 
-.fm-submit .button-blue i {
+.fm-submit .button-blue i,
+.firstrun .button-blue i {
   display: block;
   font-style: normal;
   margin-right: -12px;
@@ -580,7 +651,6 @@ a:active {
 #link-account {
   display: none;
   font-size: .6875em;
-  width: 180px;
   margin: 0 -20px 20px;
   padding: 15px 20px;
   color: #fff;
@@ -642,7 +712,26 @@ button::-moz-focus-inner {
 }
 
 #user-tools .calendar {
+  font-size: 0.75em;
   margin: 1em 0;
+}
+
+#user-tools .month-icon {
+  line-height: 22px;
+}
+
+#user-tools .stats-warning {
+  background: #f6fbff;
+  padding: 15px;
+  border: 1px solid #eee;
+  font-size: .857em;
+  margin: 20px 0 0;
+}
+
+#user-tools .stats-warning span {
+    background: url(../img/facebook/status-bad.png) 0 1px no-repeat;
+    display: block;
+    padding-left: 25px;
 }
 
 .module .note {
@@ -694,7 +783,7 @@ button::-moz-focus-inner {
   margin: 0 0 1em;
 }
 
-#news-email {
+#newsletter_email {
   border: 1px solid #ccc;
   border-radius: .5em;
   color: #484848;
@@ -702,7 +791,7 @@ button::-moz-focus-inner {
   font-size: .75em;
   padding: 4px 6px;
   box-shadow: inset 0 0 8px rgba(0,0,0,.01), inset 0 2px 2px rgba(0,0,0,.1);
-  width: 165px;
+  width: 185px;
 }
 
 #newsletter label {
@@ -712,6 +801,10 @@ button::-moz-focus-inner {
 
 #newsletter .options {
   font-size: .75em;
+}
+
+#newsletter .options li {
+  display: inline;
 }
 
 #newsletter .options label {
@@ -743,6 +836,19 @@ button::-moz-focus-inner {
 .go:after {
   content: "\00A0\00BB"; /* nbsp raquo */
   font-size: 1.2em;
+}
+
+#newsletter-success {
+  background: #f6fbff;
+  display: none;
+  padding: 15px;
+  border: 1px solid #eee;
+  font-size: .857em;
+}
+
+#newsletter-success .msg {
+  background: url(../img/facebook/status-good.png) 0 1px no-repeat;
+  padding-left: 25px;
 }
 
 /* @Current banners */
@@ -952,3 +1058,99 @@ table.board .leaders .avatar {
   margin: -6px 16px -6px -5px;
   box-shadow: 1px 1px 1px rgba(0,135,183,.5);
 }
+
+/* @404 page */
+.notfound .main {
+  width: 435px;
+  padding: 60px 45px 60px 260px;
+  margin-top: 40px;
+  font-size: .875em;
+  background: #fff url(../img/facebook/fx-logo-big.png) -85px 50% no-repeat;
+}
+
+.notfound .page-title {
+  font-size: 3.428em;
+  margin: 0 0 .15em -2px;
+  text-align: left;
+}
+
+.notfound h3 {
+  margin: 0 0 1em;
+}
+
+.notfound ul {
+  font-size: .857em;
+  margin: 0 0 1.5em 40px;
+  list-style: disc;
+}
+
+.notfound li {
+  margin: 0 0 1em;
+}
+
+/* @FAQs */
+.faqs .page-title {
+  text-align: left;
+  margin-bottom: 1em;
+}
+
+.faq_content h3 {
+    border-bottom: 1px solid #DFDFDF;
+    font-size: 18px;
+    font-style: normal;
+    margin: 0 0 15px;
+    padding: 0 0 10px;
+}
+
+.faq_content .accordion {
+    list-style: none;
+    margin: 0 0 40px;
+    padding: 0;
+}
+
+.faq_content li:nth-child(even) {
+    background: #f6f6f6;
+}
+
+.faq_content h4,
+.faq_content h4 a {
+    color: #444;
+    display: block;
+    font-size: 1em;
+    margin: 0;
+    padding: 0;
+}
+
+.faq_content h4 a {
+    background-position: 16px 22px;
+    background-repeat: no-repeat;
+    padding: 20px 20px 20px 45px;
+}
+
+.faq_content h4 a:hover {
+    color: #447BC4;
+}
+
+.faq_content .answer {
+    font-size: .75em;
+    line-height: 1.6em;
+    margin: 0;
+    padding: 0 20px 20px 45px;
+}
+
+.accordion .expanded h4 a {
+    background-image: url(../img/facebook/icn_expanded.png);
+}
+
+.accordion .collapsed h4 a {
+    background-image: url(../img/facebook/icn_collapsed.png);
+}
+
+.accordion .expanded .answer {
+    display: block;
+}
+
+.accordion .collapsed .answer {
+    display: none;
+}
+

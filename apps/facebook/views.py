@@ -2,10 +2,12 @@ from django import http
 from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect as django_redirect
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+import basket
+import commonware
 import jingo
 from commonware.response.decorators import xframe_allow
 from funfactory.urlresolvers import reverse
@@ -14,13 +16,17 @@ from tower import ugettext as _
 from facebook.auth import login
 from facebook.decorators import fb_login_required
 from facebook.forms import (FacebookAccountLinkForm, FacebookBannerInstanceForm,
-                            LeaderboardFilterForm)
+                            LeaderboardFilterForm, NewsletterSubscriptionForm)
 from facebook.tasks import add_click, generate_banner_instance_image
 from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
-                             FacebookUser)
-from facebook.utils import activate_locale, decode_signed_request, is_logged_in
-from shared.http import JSONResponse
+                             FacebookClickStats, FacebookUser)
+from facebook.utils import (activate_locale, decode_signed_request,
+                            is_facebook_bot, is_logged_in)
+from shared.http import JSONResponse, JSONResponseBadRequest
 from shared.utils import absolutify, redirect
+
+
+log = commonware.log.getLogger('a.facebook')
 
 
 @require_POST
@@ -64,11 +70,32 @@ def load_app(request):
     # manually.
     activate_locale(request, user.locale)
 
-    if user.is_new:
-        return jingo.render(request, 'facebook/first_run.html')
-
-    # TODO: Replace with actual app landing page.
     return banner_list(request)
+
+
+@require_POST
+@csrf_exempt
+def deauthorize(request):
+    """
+    Callback that is pinged by Facebook when a user de-authorizes the app.
+
+    Deletes the associated user and all their data. Returns a 400 if the signed
+    request is missing or malformed, a 404 if the specified user could not be
+    found, and a 200 if the removal was successful.
+    """
+    signed_request = request.POST.get('signed_request', None)
+    if signed_request is None:
+        return JSONResponseBadRequest({'error': 'No signed_request parameter '
+                                                'found.'})
+
+    decoded_request = decode_signed_request(signed_request,
+                                            settings.FACEBOOK_APP_SECRET)
+    if decoded_request is None or 'user_id' not in decoded_request:
+        return JSONResponseBadRequest({'error': 'signed_request invalid.'})
+
+    user = get_object_or_404(FacebookUser, id=decoded_request['user_id'])
+    FacebookUser.objects.purge_user_data(user)
+    return JSONResponse({'success': 'User data purged successfully.'})
 
 
 @fb_login_required
@@ -123,6 +150,10 @@ def banner_create_image_check(request, instance_id):
 @fb_login_required
 @xframe_allow
 def banner_list(request):
+    # New users can't see this page.
+    if request.user.is_new:
+        return jingo.render(request, 'facebook/first_run.html')
+
     banner_instances = request.user.banner_instance_set.filter(processed=True)
     return jingo.render(request, 'facebook/banner_list.html',
                         {'banner_instances': banner_instances})
@@ -194,8 +225,17 @@ def follow_banner_link(request, banner_instance_id):
     Add a click to a banner instance and redirect the user to the Firefox
     download page.
     """
-    add_click.delay(banner_instance_id)
-    return django_redirect(settings.FACEBOOK_DOWNLOAD_URL)
+    try:
+        banner_instance = (FacebookBannerInstance.objects
+                           .select_related('banner').get(id=banner_instance_id))
+    except FacebookBannerInstance.DoesNotExist:
+        return django_redirect(settings.FACEBOOK_DOWNLOAD_URL)
+
+    # Do not add a click if the request is from the Facebook bot.
+    if not is_facebook_bot(request):
+        add_click.delay(banner_instance_id)
+
+    return django_redirect(banner_instance.banner.link)
 
 
 @fb_login_required
@@ -205,6 +245,12 @@ def leaderboard(request):
     top_users = form.get_top_users()
     return jingo.render(request, 'facebook/leaderboard.html',
                         {'top_users': top_users, 'form': form})
+
+
+@fb_login_required
+@xframe_allow
+def faq(request):
+    return jingo.render(request, 'facebook/faq.html')
 
 
 @fb_login_required
@@ -223,3 +269,31 @@ def post_invite(request):
     messages.success(request, _('You have successfully sent a message to one '
                                 'of your friends!'))
     return django_redirect(settings.FACEBOOK_APP_URL)
+
+
+@fb_login_required
+@require_POST
+def newsletter_subscribe(request):
+    form = NewsletterSubscriptionForm(request.user, request.POST)
+    if form.is_valid():
+        data = form.cleaned_data
+        try:
+            basket.subscribe(data['email'], settings.FACEBOOK_MAILING_LIST,
+                             format=data['format'], country=data['country'])
+        except basket.BasketException, e:
+            log.error('Error subscribing email %s to mailing list: %s' %
+                      (data['email'], e))
+
+    # TODO: Send an error code if there was an error.
+    return JSONResponse({'success': 'success'})
+
+
+@fb_login_required
+@cache_control(must_revalidate=True, max_age=3600)
+def stats(request, year, month):
+    """
+    Returns statistics for the sidebar statistics display. Called via AJAX.
+    """
+    clicks = FacebookClickStats.objects.total_for_month(request.user, year,
+                                                        month)
+    return JSONResponse({'clicks': clicks})

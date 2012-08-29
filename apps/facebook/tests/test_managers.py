@@ -1,14 +1,22 @@
 import json
+import os
+from datetime import datetime
 
+from django.conf import settings
 from django.core import mail
+from django.core.files import File
 from django.test.client import RequestFactory
 
 import requests
 from mock import Mock, patch
 from nose.tools import eq_, ok_
 
-from facebook.models import FacebookAccountLink, FacebookUser
-from facebook.tests import FacebookAccountLinkFactory, FacebookUserFactory
+from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
+                             FacebookClickStats, FacebookUser)
+from facebook.tests import (FacebookAccountLinkFactory,
+                            FacebookBannerInstanceFactory,
+                            FacebookClickStatsFactory, FacebookUserFactory,
+                            path)
 from shared.tests import TestCase
 from users.tests import UserFactory
 
@@ -19,7 +27,7 @@ def _r(content):
     return response
 
 
-@patch.object(requests, 'get')
+@patch.object(settings, 'FACEBOOK_CLICK_GOAL_EMAIL', 'admin@example.com')
 class FacebookUserManagerTests(TestCase):
     manager = FacebookUser.objects
 
@@ -28,6 +36,7 @@ class FacebookUserManagerTests(TestCase):
         user.save = Mock()
         return user
 
+    @patch.object(requests, 'get')
     def test_request_error(self, get):
         """If requests encounters an error, do nothing."""
         get.side_effect = requests.exceptions.RequestException
@@ -35,6 +44,7 @@ class FacebookUserManagerTests(TestCase):
         self.manager.update_user_info(user)
         ok_(not user.save.called)
 
+    @patch.object(requests, 'get')
     def test_json_error(self, get):
         """If there is an error parsing Facebook's JSON, do nothing."""
         get.return_value = _r('malformed.json')
@@ -43,6 +53,7 @@ class FacebookUserManagerTests(TestCase):
         self.manager.update_user_info(user)
         ok_(not user.save.called)
 
+    @patch.object(requests, 'get')
     def test_successful_update(self, get):
         """
         If the JSON retrieved from Facebook is valid, update the user object.
@@ -57,6 +68,62 @@ class FacebookUserManagerTests(TestCase):
         eq_(user.full_name, 'Fred')  # Value replaced.
         eq_(user.first_name, 'Bob')  # Value preserved.
         eq_(user.last_name, '')  # Empty value preserved.
+
+    def test_purge_email(self):
+        """
+        If a user is being purged and has banners that have passed ad review,
+        send an email to the admin with info about the ads that need to be
+        removed.
+        """
+        user = FacebookUserFactory.create()
+        instance1 = FacebookBannerInstanceFactory.create(
+            user=user, review_status=FacebookBannerInstance.PASSED)
+        instance2 = FacebookBannerInstanceFactory.create(
+            user=user, review_status=FacebookBannerInstance.PASSED)
+        instance3 = FacebookBannerInstanceFactory.create(
+            user=user, review_status=FacebookBannerInstance.FAILED)
+
+        user_id = 'User ID: %s' % user.id
+        instance1_id = 'Banner Instance ID: %s' % instance1.id
+        instance2_id = 'Banner Instance ID: %s' % instance2.id
+        instance3_id = 'Banner Instance ID: %s' % instance3.id
+        self.manager.purge_user_data(user)
+
+        eq_(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        ok_('admin@example.com' in msg.to)
+        ok_(user_id in msg.body)
+        ok_(instance1_id in msg.body)
+        ok_(instance2_id in msg.body)
+        ok_(not instance3_id in msg.body)
+
+    def test_purge_delete_images(self):
+        """
+        If there are any custom-generated images for a user's banner instances,
+        they must be deleted.
+        """
+        user = FacebookUserFactory.create()
+        instance = FacebookBannerInstanceFactory.create(user=user)
+        with open(path('images', 'banner.png')) as banner:
+            instance.custom_image.save('custom.png', File(banner))
+        file_path = ''.join((settings.MEDIA_ROOT, instance.custom_image.name))
+
+        self.manager.purge_user_data(user)
+        ok_(not os.path.exists(file_path))
+
+    def test_purge_delete_everything(self):
+        """Ensure that purge deletes all relevant database entries."""
+        fb_user = FacebookUserFactory.create()
+        user = UserFactory.create()
+        link = FacebookAccountLinkFactory.create(affiliates_user=user,
+                                                 facebook_user=fb_user)
+        instance = FacebookBannerInstanceFactory.create(user=fb_user)
+        personal_items = [(item.__class__, item.id) for item in
+                          (fb_user, link, instance)]
+
+        self.manager.purge_user_data(fb_user)
+        for klass, id in personal_items:
+            eq_(klass.objects.filter(id=id).exists(), False)
 
 
 class FacebookAccountLinkManagerTests(TestCase):
@@ -151,3 +218,38 @@ class FacebookAccountLinkManagerTests(TestCase):
         result = self.manager.activate_link(link.activation_code)
         eq_(result, link)
         eq_(result.is_active, True)
+
+
+class FacebookClickStatsManagerTests(TestCase):
+    manager = FacebookClickStats.objects
+
+    def _mkstats(self, user, year, month, clicks):
+        now = datetime.now()
+        hour = datetime(year, month, now.day, now.hour)
+        return FacebookClickStatsFactory.create(banner_instance__user=user,
+                                                hour=hour, clicks=clicks)
+
+    def test_total_for_month(self):
+        """Test that the click sum logic is correct."""
+        user = FacebookUserFactory.create()
+        self._mkstats(user, 2012, 5, 5)
+        self._mkstats(user, 2012, 3, 7)
+        self._mkstats(user, 2012, 5, 2)
+        eq_(self.manager.total_for_month(user, 2012, 5), 7)
+
+    def test_total_for_month_none(self):
+        """If there are no clicks for the given month, return 0."""
+        user = FacebookUserFactory.create()
+        eq_(self.manager.total_for_month(user, 2012, 5), 0)
+
+    def test_total_for_year(self):
+        user = FacebookUserFactory.create()
+        self._mkstats(user, 2012, 3, 1)
+        self._mkstats(user, 2012, 4, 2)
+        self._mkstats(user, 2012, 5, 3)
+        eq_(self.manager.total_for_user(user), 6)
+
+    def test_total_for_year_none(self):
+        """If there are no clicks for the given user, return 0."""
+        user = FacebookUserFactory.create()
+        eq_(self.manager.total_for_user(user), 0)

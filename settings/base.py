@@ -143,6 +143,7 @@ MINIFY_BUNDLES = {
             'css/styles.css',
             'css/uniform.default.css',
             'css/affiliates.css',
+            'css/month_year_picker.css',
             'css/my_banners.css',
         ),
         'home': (
@@ -161,6 +162,7 @@ MINIFY_BUNDLES = {
         # Facebook app
         'fb_base': (
             'css/facebook.css',
+            'css/month_year_picker.css',
         ),
     },
     'js': {
@@ -170,6 +172,7 @@ MINIFY_BUNDLES = {
             'global/js/nav-main.js',
             'js/libs/jquery.placeholder.min.js',
             'js/libs/jquery.uniform.min.js',
+            'js/month_year_picker.js',
             'js/affiliates.js',
             'js/libs/webtrends.js',
         ),
@@ -184,7 +187,8 @@ MINIFY_BUNDLES = {
         # Facebook app
         'fb_common': (
             'js/libs/jquery-1.7.1.js',
-            'js/facebook/common.js'
+            'js/month_year_picker.js',
+            'js/facebook/common.js',
         ),
         'fb_oauth_redirect': (
             'js/facebook/oauth_redirect.js',
@@ -246,6 +250,7 @@ MIDDLEWARE_CLASSES.insert(auth_index + 1, 'facebook.middleware.FacebookAuthentic
 
 TEMPLATE_CONTEXT_PROCESSORS = list(TEMPLATE_CONTEXT_PROCESSORS) + [
     'shared.context_processors.l10n',
+    'shared.context_processors.month_year_picker',
     'facebook.context_processors.app_context',
 ]
 
@@ -323,17 +328,21 @@ BANNERS_HASH = []
 
 # Settings for Affiliates Facebook app
 FACEBOOK_PERMISSIONS = ''
+FACEBOOK_LOCALES = ('en-us', 'de', 'nl', 'pl', 'pt-br', 'zh-tw')
+FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
+FACEBOOK_MAILING_LIST = 'mozilla-and-you'
+
 FACEBOOK_CLICK_GOAL = 50
+FACEBOOK_CLICK_GOAL_EMAIL = 'affiliates@mozilla.org'
 
 FACEBOOK_BANNER_IMAGE_PATH = 'uploads/facebook/banners/'
 FACEBOOK_BANNER_INSTANCE_IMAGE_PATH = 'uploads/facebook/banner_instances/'
-FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
-FACEBOOK_CUSTOM_IMG_BORDER = {'width': 3, 'color': '#CCC'}
-FACEBOOK_LOCALES = ('en-us', 'de', 'zh-tw', 'nl', 'pl', 'pt-br')
+
 
 # Coordinates for the Facebook profile image when pasted onto a banner image.
 # Format is (left, upper)
 FACEBOOK_CUSTOM_IMG_COORDS = (235, 151)
+FACEBOOK_CUSTOM_IMG_BORDER = {'width': 3, 'color': '#ccc'}
 
 # Period of time that an account link activation link is valid, in seconds.
 FACEBOOK_LINK_DELAY = 60 * 60 * 24 * 2  # 2 Days

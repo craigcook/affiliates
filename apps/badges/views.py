@@ -3,15 +3,14 @@ import json
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
-from django.views.decorators.http import require_POST
 from django.views.decorators.cache import cache_control
 
 import jingo
-from babel.dates import get_month_names
 from babel.numbers import format_number
 
 from badges.models import (Badge, BadgeInstance, Category, ClickStats,
                            Leaderboard, Subcategory)
+from facebook.models import FacebookClickStats
 from news.models import NewsItem
 from shared.decorators import login_required
 from shared.utils import current_locale, redirect
@@ -64,18 +63,14 @@ def dashboard(request, template, context=None):
 
     if context['user_has_created_badges']:
         clicks_total = ClickStats.objects.total_for_user(request.user)
+
+        # Add Facebook clicks to total
+        fb_user = request.user.get_linked_account()
+        if fb_user is not None:
+            clicks_total += FacebookClickStats.objects.total_for_user(fb_user)
+
         context['user_clicks_total'] = format_number(clicks_total,
                                                      locale=locale)
-
-        # Statistics Summary
-        months_short = get_month_names('abbreviated', locale=locale)
-        months_full = get_month_names('wide', locale=locale)
-        months_short_list = [name for k, name in months_short.items()]
-        months_full_list = [name for k, name in months_full.items()]
-
-        context['months_short'] = months_short.items()
-        context['months_full_list_json'] = json.dumps(months_full_list)
-        context['months_short_list_json'] = json.dumps(months_short_list)
 
         # Leaderboard
         try:
@@ -90,16 +85,22 @@ def dashboard(request, template, context=None):
     return jingo.render(request, template, context)
 
 
-@require_POST
 @login_required
 @cache_control(must_revalidate=True, max_age=3600)
-def month_stats_ajax(request):
-    user_total = ClickStats.objects.total_for_user_period(
-        request.user, request.POST['month'], request.POST['year'])
-    site_avg = ClickStats.objects.average_for_period(
-        request.POST['month'], request.POST['year'])
+def month_stats_ajax(request, month, year):
+    user_total = ClickStats.objects.total_for_user_period(request.user, month,
+                                                          year)
+    site_avg = ClickStats.objects.average_for_period(month, year)
 
     locale = current_locale()
     results = {'user_total': format_number(user_total, locale=locale),
                'site_avg': format_number(site_avg, locale=locale)}
+
+    # Get linked Facebook click count if available.
+    facebook_user = request.user.get_linked_account()
+    if facebook_user is not None:
+        fb_total = FacebookClickStats.objects.total_for_month(facebook_user,
+                                                              year, month)
+        results['fb_total'] = format_number(fb_total, locale=locale)
+
     return HttpResponse(json.dumps(results), mimetype='application/json')

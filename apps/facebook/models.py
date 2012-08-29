@@ -6,10 +6,11 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.template.defaultfilters import slugify
 
-from caching.base import CachingMixin
+from caching.base import CachingManager, CachingMixin
 from funfactory.urlresolvers import reverse
+from tower import ugettext_lazy as _lazy
 
-from facebook.managers import FacebookAccountLinkManager, FacebookUserManager
+from facebook import managers
 from facebook.utils import current_hour
 from shared.models import LocaleField, ModelBase
 from shared.storage import OverwritingStorage
@@ -18,8 +19,9 @@ from shared.utils import absolutify
 
 class FacebookUser(CachingMixin, ModelBase):
     """Represent a user of the Facebook app."""
-    id = models.CharField(max_length=128, primary_key=True)
-    leaderboard_position = models.IntegerField(default=-1)
+    id = models.CharField(max_length=128, primary_key=True,
+                          verbose_name='Facebook User ID')
+    leaderboard_position = models.IntegerField(default=-1)  # Max Int
     total_clicks = models.IntegerField(default=0)
 
     # Personal info from Facebook
@@ -30,7 +32,7 @@ class FacebookUser(CachingMixin, ModelBase):
     country = models.CharField(max_length=16, blank=True,
                                choices=settings.COUNTRIES.items())
 
-    objects = FacebookUserManager()
+    objects = managers.FacebookUserManager()
 
     @property
     def is_new(self):
@@ -56,6 +58,9 @@ class FacebookUser(CachingMixin, ModelBase):
     @property
     def picture_url(self):
         return 'https://graph.facebook.com/%s/picture?type=square' % self.id
+
+    def __unicode__(self):
+        return self.full_name
 
     # The next few methods and properties are useful for pretending to be a real
     # Django user object.
@@ -100,7 +105,7 @@ class FacebookAccountLink(CachingMixin, ModelBase):
     activation_code = models.CharField(max_length=128, blank=True)
     is_active = models.BooleanField(default=False)
 
-    objects = FacebookAccountLinkManager()
+    objects = managers.FacebookAccountLinkManager()
 
     @property
     def activation_link(self):
@@ -115,23 +120,47 @@ class FacebookAccountLink(CachingMixin, ModelBase):
         return unicode(self.id) + 'active' if self.is_active else 'inactive'
 
 
+def _generate_banner_filename(instance, filename):
+    extension = os.path.splitext(filename)[1]
+    return '{0}{1}'.format(slugify(instance.name), extension)
+
+
 def fb_banner_rename(instance, filename):
     """Determine the filename for FacebookBanner images."""
-    extension = os.path.splitext(filename)[1]
-    new_filename = '{0}{1}'.format(slugify(instance.name), extension)
+    new_filename = _generate_banner_filename(instance, filename)
     return os.path.join(settings.FACEBOOK_BANNER_IMAGE_PATH, new_filename)
 
 
-class FacebookBanner(ModelBase):
+def fb_banner_thumbnail_rename(instance, filename):
+    new_filename = 'thumb_%s' % _generate_banner_filename(instance, filename)
+    return os.path.join(settings.FACEBOOK_BANNER_IMAGE_PATH, new_filename)
+
+
+class FacebookBanner(CachingMixin, ModelBase):
     """A banner that users can customize and share on Facebook."""
     name = models.CharField(max_length=255, default='Banner', unique=True,
                             verbose_name='Banner name')
+    _alt_text = models.CharField(max_length=256, blank=True, default='',
+                                 verbose_name='Image Alt Text')
+    link = models.URLField(default=settings.FACEBOOK_DOWNLOAD_URL)
     image = models.ImageField(upload_to=fb_banner_rename,
                               storage=OverwritingStorage(),
                               max_length=settings.MAX_FILEPATH_LENGTH)
+    thumbnail = models.ImageField(upload_to=fb_banner_thumbnail_rename,
+                                  storage=OverwritingStorage(),
+                                  max_length=settings.MAX_FILEPATH_LENGTH)
+
+    objects = CachingManager()
+
+    @property
+    def alt_text(self):
+        return _lazy(self._alt_text) if self._alt_text != '' else ''
+
+    def __unicode__(self):
+        return self.name
 
 
-class FacebookBannerLocale(ModelBase):
+class FacebookBannerLocale(CachingMixin, ModelBase):
     banner = models.ForeignKey(FacebookBanner, related_name='locale_set')
     locale = LocaleField()
 
@@ -144,7 +173,7 @@ def fb_instance_image_rename(instance, filename):
                         new_filename)
 
 
-class FacebookBannerInstance(ModelBase):
+class FacebookBannerInstance(CachingMixin, ModelBase):
     """Specific instance of a customized banner."""
     user = models.ForeignKey(FacebookUser, related_name='banner_instance_set')
     banner = models.ForeignKey(FacebookBanner, default=None)
@@ -158,7 +187,18 @@ class FacebookBannerInstance(ModelBase):
 
     created = models.DateTimeField(default=datetime.now)
     total_clicks = models.IntegerField(default=0)
+    total_clicks.total_clicks_goal = True
+
     processed = models.BooleanField(default=False)
+
+    UNREVIEWED = 0
+    PASSED = 1
+    FAILED = 2
+    REVIEW_CHOICES = ((UNREVIEWED, 'Unreviewed'), (PASSED, 'Passed'),
+                      (FAILED, 'Failed'),)
+    review_status = models.SmallIntegerField(choices=REVIEW_CHOICES, default=0)
+
+    objects = CachingManager()
 
     @property
     def link(self):
@@ -171,8 +211,13 @@ class FacebookBannerInstance(ModelBase):
         else:
             return self.banner.image
 
+    def __unicode__(self):
+        return u'%s: %s' % (self.banner, self.text)
 
-class FacebookClickStats(ModelBase):
+
+class FacebookClickStats(CachingMixin, ModelBase):
     banner_instance = models.ForeignKey(FacebookBannerInstance)
     hour = models.DateTimeField(default=current_hour)
     clicks = models.IntegerField(default=0)
+
+    objects = managers.FacebookClickStatsManager()

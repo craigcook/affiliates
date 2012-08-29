@@ -1,7 +1,10 @@
+from datetime import datetime
 from StringIO import StringIO
 
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 import commonware
 import requests
@@ -30,6 +33,17 @@ def add_click(banner_instance_id):
                                          banner_instance=banner_instance))
         stats.clicks += 1
         stats.save()
+
+        # Notify admin of a banner meeting the click goal.
+        if banner_instance.total_clicks == settings.FACEBOOK_CLICK_GOAL:
+            subject = '[fb-affiliates-banner] Click Goal Reached!'
+            message = render_to_string('facebook/click_goal_email.html', {
+                'goal': settings.FACEBOOK_CLICK_GOAL,
+                'banner_instance': banner_instance,
+                'now': datetime.now()
+            })
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                      [settings.FACEBOOK_CLICK_GOAL_EMAIL])
 
 
 @task

@@ -1,0 +1,29 @@
+{% macro month_year_picker(src_url) -%}
+<div class="month-year-picker"
+     data-short-month-names="{{ mypicker_months_short.values()|jsonencode }}"
+     data-long-month-names="{{ mypicker_months_long.values()|jsonencode }}"
+     data-url="{{ src_url }}">
+  <div class="picker-header">
+    <a class="prev-month month-picker-button" href="#">&laquo;</a>
+    <a class="next-month month-picker-button" href="">&raquo;</a>
+    <a class="current-month-year" href="#">
+      <span class="month-year"></span>
+      <span class="month-icon">&nbsp;</span>
+    </a>
+  </div>
+  <div class="month-picker">
+    <div class="year-picker">
+      <a class="prev-year" href="#">&laquo;</a>
+      <span class="current-year"></span>
+      <a class="next-year" href="#">&raquo;</a>
+    </div>
+    <ul>
+      {% for number, month_name in mypicker_months_short.items() %}
+        <li class="month-number month-{{ number }}">
+          <a data-number="{{ number }}" href="#">{{ month_name }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{%- endmacro %}

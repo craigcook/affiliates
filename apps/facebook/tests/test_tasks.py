@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core import mail
 from django.core.files import File
 
 import requests
@@ -28,6 +30,21 @@ class AddClickTests(TestCase):
 
         stats = FacebookClickStats.objects.get(banner_instance=banner_instance)
         eq_(stats.clicks, 1)
+
+    @patch.object(settings, 'FACEBOOK_CLICK_GOAL', 30)
+    @patch.object(settings, 'FACEBOOK_CLICK_GOAL_EMAIL', 'admin@example.com')
+    def test_admin_email(self):
+        """
+        If the banner instance has just reached the click goal, email the admin.
+        """
+        instance = FacebookBannerInstanceFactory.create(total_clicks=29)
+        add_click(instance.id)
+
+        eq_(len(mail.outbox), 1)
+        eq_(mail.outbox[0].subject, ('[fb-affiliates-banner] Click Goal '
+                                     'Reached!'))
+        ok_(unicode(instance.id) in mail.outbox[0].body)
+        ok_('admin@example.com' in mail.outbox[0].to)
 
 
 def image_response(*image_path):
@@ -91,3 +108,7 @@ class GenerateBannerInstanceImageTests(TestCase):
         # effbot delivers! http://effbot.org/zone/pil-comparing-images.htm
         match = ImageChops.difference(custom_im, reference_im).getbbox() is None
         eq_(match, True)
+
+        # Cleanup
+        instance.banner.image.delete()
+        instance.custom_image.delete()

@@ -1,13 +1,16 @@
 import json
 
+from django.conf import settings
+
+import basket
 from funfactory.urlresolvers import reverse
 from mock import patch
 from nose.tools import eq_, ok_
 
 from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
                              FacebookUser)
-from facebook.tests import (create_payload, FacebookAccountLinkFactory,
-                            FacebookBannerFactory,
+from facebook.tests import (create_payload, FACEBOOK_USER_AGENT,
+                            FacebookAccountLinkFactory, FacebookBannerFactory,
                             FacebookBannerInstanceFactory, FacebookUserFactory)
 from shared.tests import TestCase
 from shared.utils import absolutify
@@ -70,13 +73,6 @@ class LoadAppTests(TestCase):
         response = self.load_app(payload)
         self.assertTemplateUsed(response, 'facebook/banner_list.html')
 
-    @patch.object(FacebookUser, 'is_new', True)
-    def test_firstrun_page(self, update_user_info):
-        """If the user is new, show the firstrun page."""
-        payload = create_payload(user_id=1)
-        response = self.load_app(payload)
-        self.assertTemplateUsed(response, 'facebook/first_run.html')
-
     @patch('facebook.views.login')
     def test_country_saved(self, login, update_user_info):
         """
@@ -90,6 +86,54 @@ class LoadAppTests(TestCase):
 
         eq_(login.called, True)
         eq_(login.call_args[0][1].country, 'fr')
+
+
+class DeauthorizeTest(TestCase):
+    def deauthorize(self, payload):
+        """
+        Runs the deauthorize view. If payload is None, it will not be
+        passed to the view. If it is False, it will fail to be decoded.
+        Otherwise, it will be used as the payload.
+        """
+        post_data = {}
+        if payload is not None:
+            post_data['signed_request'] = 'signed_request'
+
+        with patch('facebook.views.decode_signed_request') as decode:
+            if payload:
+                decode.return_value = payload
+            else:
+                decode.return_value = None
+
+            return self.client.post(reverse('facebook.deauthorize'), post_data)
+
+    def test_no_signed_request(self):
+        """If no signed request is provided, return a 400 Bad Request."""
+        response = self.deauthorize(None)
+        eq_(response.status_code, 400)
+
+    def test_invalid_signed_request(self):
+        """If the signed request is invalid, return a 400 Bad Request."""
+        response = self.deauthorize(False)
+        eq_(response.status_code, 400)
+
+    def test_user_does_not_exist(self):
+        """
+        If the supplied user id doesn't match an existing user, return a 404 Not
+        Found.
+        """
+        response = self.deauthorize({'user_id': 999})
+        eq_(response.status_code, 404)
+
+    @patch.object(FacebookUser.objects, 'purge_user_data')
+    def test_valid_user(self, purge_user_data):
+        """
+        If the supplied user id is valid, call purge_user_data with the user.
+        """
+        user = FacebookUserFactory.create()
+        response = self.deauthorize({'user_id': user.id})
+        eq_(response.status_code, 200)
+        purge_user_data.assert_called_with(user)
 
 
 class CreateBannerTests(TestCase):
@@ -237,3 +281,105 @@ class LinkAccountsTests(TestCase):
         eq_(response.status_code, 200)
         ok_(send_activation_email.called)
         eq_(send_activation_email.call_args[0][1], link)
+
+
+@patch.object(basket, 'subscribe')
+@patch.object(settings, 'FACEBOOK_MAILING_LIST', 'test-list')
+class NewsletterSubscribeTests(TestCase):
+    def setUp(self):
+        self.user = FacebookUserFactory.create()
+        self.client.fb_login(self.user)
+
+    def subscribe(self, **kwargs):
+        with self.activate('en-US'):
+            return self.client.post(reverse('facebook.newsletter.subscribe'),
+                                    kwargs)
+
+    def test_invalid_form_returns_success(self, subscribe):
+        """
+        Test that even if the form is invalid, return a 200 OK. This will go
+        away once we have strings translated for an error message.
+        """
+        response = self.subscribe(country='does.not.exist')
+        eq_(response.status_code, 200)
+        ok_(not subscribe.called)
+
+    def test_valid_form_call_basket(self, subscribe):
+        """If the form is valid, call basket with the proper arguments."""
+        response = self.subscribe(email='test@example.com', country='us',
+                                  format='text', privacy_policy_agree=True)
+        eq_(response.status_code, 200)
+        subscribe.assert_called_with('test@example.com', 'test-list',
+                                     format='text', country='us')
+
+    @patch('facebook.views.log')
+    def test_basket_error_log(self, log, subscribe):
+        """If basket throws an exception, log it and return a 200 OK."""
+        subscribe.side_effect = basket.BasketException
+        response = self.subscribe(email='test@example.com', country='us',
+                                  format='text', privacy_policy_agree=True)
+        eq_(response.status_code, 200)
+        ok_(log.error.called)
+
+
+@patch.object(settings, 'FACEBOOK_DOWNLOAD_URL', 'http://mozilla.org')
+class FollowBannerLinkTests(TestCase):
+    def follow_link(self, instance_id, **extra):
+        with self.activate('en-US'):
+            return self.client.get(reverse('facebook.banners.link',
+                                           args=[instance_id]),
+                                   **extra)
+
+    def test_instance_does_not_exist(self):
+        """
+        If the requested banner instance does not exist, return the default
+        redirect.
+        """
+        response = self.follow_link(999)
+        self.assert_redirects(response, 'http://mozilla.org')
+
+    @patch('facebook.views.add_click')
+    def test_banner_redirect(self, add_click):
+        """
+        If the requested banner instance exists, return a redirect to the
+        parent banner's link.
+        """
+        instance = FacebookBannerInstanceFactory.create(
+            banner__link='http://allizom.org')
+        response = self.follow_link(instance.id)
+        self.assert_redirects(response, 'http://allizom.org')
+        add_click.delay.assert_called_with(unicode(instance.id))
+
+    @patch('facebook.views.add_click')
+    def test_facebook_bot_no_click(self, add_click):
+        """If the request is coming from a facebook bot, do not add a click."""
+        instance = FacebookBannerInstanceFactory.create(
+            banner__link='http://allizom.org')
+        response = self.follow_link(instance.id,
+                                    HTTP_USER_AGENT=FACEBOOK_USER_AGENT)
+        self.assert_redirects(response, 'http://allizom.org')
+        ok_(not add_click.delay.called)
+
+
+class BannerListTests(TestCase):
+    def banner_list(self):
+        with self.activate('en-US'):
+            return self.client.get(reverse('facebook.banner_list'))
+
+    @patch.object(FacebookUser, 'is_new', True)
+    def test_new_user_first_run(self):
+        """If the logged in user is new, redirect them to the first run page."""
+        user = FacebookUserFactory.create()
+        self.client.fb_login(user)
+
+        response = self.banner_list()
+        self.assertTemplateUsed(response, 'facebook/first_run.html')
+
+    @patch.object(FacebookUser, 'is_new', False)
+    def test_old_user_banner_list(self):
+        """If the logged in user is not new, render the banner list page."""
+        user = FacebookUserFactory.create()
+        self.client.fb_login(user)
+
+        response = self.banner_list()
+        self.assertTemplateUsed(response, 'facebook/banner_list.html')

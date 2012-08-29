@@ -15,6 +15,10 @@ from shared.tokens import TokenGenerator
 from users.tests import UserFactory
 
 
+FACEBOOK_USER_AGENT = ('facebookexternalhit/1.1 (+http://www.facebook.com/'
+                       'externalhit_uatext.php)')
+
+
 def path(*a):
     return os.path.join(dirname(abspath(__file__)), *a)
 
@@ -68,6 +72,7 @@ class FacebookBannerFactory(Factory):
     FACTORY_FOR = models.FacebookBanner
     name = Sequence(lambda n: 'test%s' % n)
     image = Sequence(lambda n: 'non-existant-path')
+    thumbnail = Sequence(lambda n: 'non-existant-path')
 
 
 class FacebookBannerLocaleFactory(Factory):

@@ -1,6 +1,6 @@
 (function($) {
     // Handle submission of the account linking form.
-    $(document).on('submit', '#link-account', function(e) {
+    $('#link-account').submit(function(e) {
         e.preventDefault();
 
         var $form = $(this);
@@ -28,10 +28,76 @@
     $(document).ready(function() {
         // Hide newsletter options
         $("#newsletter .options").hide();
+        FAQ.init();
     });
 
     // Show newsletter options
-    $("#news-email").focus(function(){
+    $("#newsletter_email").focus(function(){
         $("#newsletter .options").slideDown('fast');
     });
+
+    // Handle submission of the newsletter form.
+    // TODO: Handle errors!
+    $('#newsletter-form').submit(function(e) {
+        e.preventDefault();
+
+        var $form = $(this);
+        $.ajax({
+            type: $form.attr('method'),
+            url: $form.attr('action'),
+            data: $form.serialize()
+        }).done(function() {
+            $form.slideUp('fast', function() {
+                $('#newsletter-success').slideDown('fast');
+            });
+        });
+    });
+
+    // Initialize MonthYearPicker
+    var monthYearPicker = new MonthYearPicker('.month-year-picker', {
+        errorMsgSelector: '.stats-warning'
+    });
+    monthYearPicker.onRefresh(function(data) {
+        $('#total-clicks').text(data.clicks);
+    });
 })(jQuery);
+
+/**
+ * FAQ Page Class
+ */
+var FAQ = {
+    init: function(){
+        FAQ.addEventListeners();
+    },
+
+    addEventListeners: function(){
+        $(".js_accordion").each(function(index, elem){
+            FAQ.initAccordion(elem);
+        });
+    },
+
+    initAccordion : function(elem){
+        var ulAccordion = $(elem);
+        var lnkAction = $("h4 a", ulAccordion);
+        var liElement;
+        var answerElement;
+
+        ulAccordion.children().removeClass().addClass('collapsed');
+        lnkAction.click(function(e){
+            e.preventDefault();
+
+            liElement = $(this).parents('li');
+            answerElement = $('.answer', liElement);
+            if (liElement.hasClass('collapsed')) {
+                answerElement.slideDown('fast', function() {
+                    liElement.removeClass().addClass('expanded');
+                });
+            } else {
+                answerElement.slideUp('fast', function() {
+                    liElement.removeClass().addClass('collapsed');
+                });
+            }
+        });
+    }
+
+};

@@ -86,7 +86,7 @@ def current_locale():
     """
     try:
         return Locale.parse(get_language(), sep='-')
-    except UnknownLocaleError:
+    except (UnknownLocaleError, ValueError):
         # Default to en-US
         return Locale('en', 'US')
 
@@ -111,5 +111,5 @@ def get_object_or_none(klass, *args, **kwargs):
     """
     try:
         return klass.objects.get(*args, **kwargs)
-    except klass.DoesNotExist:
+    except (klass.DoesNotExist, klass.MultipleObjectsReturned):
         return None
