@@ -187,6 +187,7 @@ MINIFY_BUNDLES = {
         # Facebook app
         'fb_common': (
             'js/libs/jquery-1.7.1.js',
+            'js/libs/spin.js',
             'js/month_year_picker.js',
             'js/facebook/common.js',
         ),
@@ -328,7 +329,7 @@ BANNERS_HASH = []
 
 # Settings for Affiliates Facebook app
 FACEBOOK_PERMISSIONS = ''
-FACEBOOK_LOCALES = ('en-us', 'de', 'nl', 'pl', 'pt-br', 'zh-tw')
+FACEBOOK_LOCALES = ('en-us', 'de', 'es', 'fr', 'nl', 'pl', 'pt-br', 'sq')
 FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
 FACEBOOK_MAILING_LIST = 'mozilla-and-you'
 
