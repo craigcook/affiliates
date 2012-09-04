@@ -39,7 +39,7 @@ class FacebookUser(CachingMixin, ModelBase):
     @property
     def is_new(self):
         """A user is new if they have yet to create a Facebook banner."""
-        return not self.banner_instance_set.exists()
+        return not self.banner_instance_set.filter(processed=True).exists()
 
     @property
     def account_link(self):
@@ -170,7 +170,7 @@ class FacebookBannerLocale(CachingMixin, ModelBase):
 def fb_instance_image_rename(instance, filename):
     """Determine the filename for a custom FacebookBannerInstance image."""
     extension = os.path.splitext(filename)[1]
-    new_filename = '%s_%s%s' % (instance.user.id, instance.banner.id, extension)
+    new_filename = '%s_%s%s' % (instance.user.id, instance.id, extension)
     return os.path.join(settings.FACEBOOK_BANNER_INSTANCE_IMAGE_PATH,
                         new_filename)
 

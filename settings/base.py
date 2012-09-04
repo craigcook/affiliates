@@ -105,7 +105,7 @@ SERIALIZATION_MODULES = {
 SMUGGLER_FORMAT = 'json_files'
 
 # Email subscription config
-BASKET_URL = 'https://basket.mozilla.com'
+BASKET_URL = 'http://basket.mozilla.com'
 BASKET_NEWSLETTER = 'mozilla-and-you'
 
 # CSP Config
@@ -128,6 +128,7 @@ CSP_IMG_SRC = (
     'https://secure.gravatar.com',
     'https://graph.facebook.com',
     'https://*.fbcdn.net',
+    'https://*.akamaihd.net',
 )
 CSP_FONT_SRC = (
     '\'self\'',
@@ -209,6 +210,9 @@ MINIFY_BUNDLES = {
         'fb_banner_create': (
             'js/facebook/banner_create.js',
         ),
+        'fb_redirect': (
+            'js/facebook/redirect.js',
+        ),
     }
 }
 
@@ -264,6 +268,7 @@ JINGO_EXCLUDE_APPS = [
     'admin',
     'smuggler',
     'stats',
+    'fb',
 ]
 
 # Set up logging to send emails on 500 errors
@@ -329,7 +334,8 @@ BANNERS_HASH = []
 
 # Settings for Affiliates Facebook app
 FACEBOOK_PERMISSIONS = ''
-FACEBOOK_LOCALES = ('en-us', 'de', 'es', 'fr', 'nl', 'pl', 'pt-br', 'sq')
+FACEBOOK_LOCALES = ('en-us', 'de', 'es', 'fr', 'nl', 'pl', 'pt-br', 'sq',
+                    'zh-tw')
 FACEBOOK_DOWNLOAD_URL = 'https://www.mozilla.org/firefox'
 FACEBOOK_MAILING_LIST = 'mozilla-and-you'
 

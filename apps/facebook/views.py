@@ -21,15 +21,17 @@ from facebook.tasks import add_click, generate_banner_instance_image
 from facebook.models import (FacebookAccountLink, FacebookBannerInstance,
                              FacebookClickStats, FacebookUser)
 from facebook.utils import (activate_locale, decode_signed_request,
-                            is_facebook_bot, is_logged_in)
+                            fb_redirect, is_facebook_bot, is_logged_in)
 from shared.http import JSONResponse, JSONResponseBadRequest
 from shared.utils import absolutify, redirect
+
+
+SAFARI_WORKAROUND_KEY = 'safari_workaround'
 
 
 log = commonware.log.getLogger('a.facebook')
 
 
-@require_POST
 @csrf_exempt
 @xframe_allow
 def load_app(request):
@@ -37,6 +39,12 @@ def load_app(request):
     Create or authenticate the Facebook user and direct them to the correct
     area of the app upon their entry.
     """
+    # Temporary measure to handle when Facebook does a GET to the main URL when
+    # a logged-out user views the app. In the future we should show a promo
+    # page instead.
+    if request.method != 'POST':
+        return request_authorization(request)
+
     signed_request = request.POST.get('signed_request', None)
     if signed_request is None:
         # App wasn't loaded within a canvas, redirect to the home page.
@@ -47,16 +55,19 @@ def load_app(request):
     if decoded_request is None:
         return redirect('home')
 
+    # If user is using Safari, we need to apply the cookie workaround.
+    useragent = request.META.get('HTTP_USER_AGENT', '')
+    using_safari = 'Safari' in useragent and not 'Chrome' in useragent
+    workaround_applied = SAFARI_WORKAROUND_KEY in request.COOKIES
+    if using_safari and not workaround_applied:
+        return fb_redirect(request,
+                           absolutify(reverse('facebook.safari_workaround')))
+
     user, created = (FacebookUser.objects.
             get_or_create_user_from_decoded_request(decoded_request))
     if user is None:
         # User has yet to authorize the app, offer authorization.
-        context = {
-            'app_id': settings.FACEBOOK_APP_ID,
-            'app_namespace': settings.FACEBOOK_APP_NAMESPACE,
-            'app_permissions': settings.FACEBOOK_PERMISSIONS
-        }
-        return jingo.render(request, 'facebook/oauth_redirect.html', context)
+        return request_authorization(request)
 
     # Attach country data to the user object. This can only be retrieved from
     # the decoded request, so we add it here and login saves it.
@@ -71,6 +82,17 @@ def load_app(request):
     activate_locale(request, user.locale)
 
     return banner_list(request)
+
+
+@xframe_allow
+def request_authorization(request):
+    """Request app authorization from the user."""
+    context = {
+        'app_id': settings.FACEBOOK_APP_ID,
+        'app_namespace': settings.FACEBOOK_APP_NAMESPACE,
+        'app_permissions': settings.FACEBOOK_PERMISSIONS
+    }
+    return jingo.render(request, 'facebook/oauth_redirect.html', context)
 
 
 @require_POST
@@ -154,7 +176,8 @@ def banner_list(request):
     if request.user.is_new:
         return jingo.render(request, 'facebook/first_run.html')
 
-    banner_instances = request.user.banner_instance_set.filter(processed=True)
+    banner_instances = (request.user.banner_instance_set.filter(processed=True)
+                        .select_related('banner'))
     return jingo.render(request, 'facebook/banner_list.html',
                         {'banner_instances': banner_instances})
 
@@ -298,3 +321,19 @@ def stats(request, year, month):
     clicks = FacebookClickStats.objects.total_for_month(request.user, year,
                                                         month)
     return JSONResponse({'clicks': clicks})
+
+
+def safari_workaround(request):
+    """
+    Safari does not allow third-party requests to set cookies, but we need to
+    set session and other cookies when users view the app through the Facebook
+    iframe.
+
+    To work around this, we send Safari users to this view, which sends a test
+    cookie to the user. Because Safari allows third-party requests to set
+    cookies if a cookie was sent with that request, the test cookie will allow
+    us to set the session cookie normally.
+    """
+    response = django_redirect(settings.FACEBOOK_APP_URL)
+    response.set_cookie(SAFARI_WORKAROUND_KEY, '1')
+    return response
