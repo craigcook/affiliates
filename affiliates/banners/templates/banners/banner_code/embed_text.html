@@ -15,6 +15,7 @@
     <div class="contain">
 
     {% block progress_bar %}
+    {# TODO: No progress bar on detail page #}
       <div class="progress">
         <ol>
           <li class="step1"><a href="{{ url('banners.generator.categories') }}">{{ _('Category') }}</a></li>
@@ -29,25 +30,18 @@
 
       <h1 class="page-title">{{ _('Banner Details') }}</h1>
 
-      <figure class="banner-preview">
-        <a href="{href}">
-          {# TODO: Make this URL absolute. #}
-          {# TODO: Include alt text if it exists, otherwise leave it blank #}
-          <img class="banner" src="{{ variation.image.url }}" alt="{alt}">
-        </a>
-
-        <figcaption>
-          <dl class="details">
-            <dt>{{ _('Created:') }}</dt>
-            <dd><time datetime="2014-04-21">21 April, 2014</time></dd>
-            <dt>{{ _('Linked URL:') }}</dt>
-            <dd><a href="{href}">https://www.mozilla.org/firefox?utm_source=firefox-affiliates&utm_medium=banner&utm_campaign=campaign-tag</a></dd>
-            {# TODO: No size for text banners (obviously) #}
-            <dt>{{ _('Size:') }}</dt>
-            <dd>300 x 250</dd>
-          </dl>
-        </figcaption>
+      <figure class="banner-preview text">
+        <p id="text-preview">
+          <a href="{href}">Lorem ipsum dolor sit amet</a>
+        </p>
       </figure>
+
+      <dl class="details">
+        <dt>{{ _('Created:') }}</dt>
+        <dd><time datetime="2014-04-21">21 April, 2014</time></dd>
+        <dt>{{ _('Linked URL:') }}</dt>
+        <dd><a href="http://www.mozilla.org/firefox?utm_source=firefox-affiliates&utm_medium=banner&utm_campaign=campaign-tag">https://www.mozilla.org/firefox?utm_source=firefox-affiliates&utm_medium=banner&utm_campaign=campaign-tag</a></dd>
+      </dl>
 
       <div class="embed">
         <label for="embed-code">{{ _('Embed code:') }} <span class="note">{{ _('Use this code to embed this banner on your website.') }}</span></label>
